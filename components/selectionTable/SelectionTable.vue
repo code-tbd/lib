@@ -21,8 +21,6 @@
 <script lang="ts" setup>
 import { ElTable as TheElTable } from 'element-plus'
 import { ref, nextTick, watch } from 'vue'
-// v-model 双向绑定存多选表格选择项
-// v-model 传递的值需要是表各项引用值的数组
 
 const props = defineProps<{
   modelValue?: any[]
