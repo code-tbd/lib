@@ -20,6 +20,8 @@
 <script lang="ts" setup>
 import { watch, ref } from 'vue'
 import { UploadFilled } from '@element-plus/icons'
+// v-model 双向绑定存多选表格选择项
+// v-model 传递的值需要是表各项引用值的数组
 
 const props = defineProps<{
   modelValue: File | undefined
