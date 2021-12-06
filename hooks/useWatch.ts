@@ -4,6 +4,7 @@ type WatchParams = Parameters<typeof watch>
 interface IWatcher {
   stop: () => void
   start: () => void
+  startWithInvoke: () => void
 }
 export const useWatch = (
   sources: WatchParams[0],
@@ -13,7 +14,17 @@ export const useWatch = (
   const watcher: Partial<IWatcher> = {}
   watcher.stop = watch(sources, cb, option)
   watcher.start = () => {
-    watcher.stop = watch(sources, cb, Object.assign({ immediate: true }, option))
+    if (option?.immediate) {
+      delete option.immediate
+    }
+    watcher.stop = watch(sources, cb, option)
+  }
+  watcher.startWithInvoke = () => {
+    watcher.stop = watch(
+      sources,
+      cb,
+      Object.assign({ immediate: true }, option)
+    )
   }
   return watcher as IWatcher
 }
