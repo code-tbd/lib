@@ -40,7 +40,6 @@ const useUpload = () => {
   watch(
     () => props.modelValue,
     (cur) => {
-      // console.log('prop:::', cur)
       file.value = cur
     },
     {

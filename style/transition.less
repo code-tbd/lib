@@ -2,27 +2,38 @@
 .enter-fade-leave-active,
 .leave-fade-enter-active,
 .leave-fade-leave-active {
-  transition: all 0.3s;
+  transition: all 0.2s;
 }
 
-// 进入动画
+// 进入平移动画
 .enter-fade-leave-to {
-  opacity: 0;
-  transform: translateX(-100%);
+  opacity: 0.5;
+  transform: translateX(-120%);
 }
 
 .enter-fade-enter-from {
-  opacity: 0;
-  transform: translateX(100%);
+  opacity: 0.5;
+  transform: translateX(120%);
 }
 
-// 返回动画
+// 返回平移动画
 .leave-fade-leave-to {
-  opacity: 0;
-  transform: translateX(100%);
+  opacity: 0.5;
+  transform: translateX(120%);
 }
 
 .leave-fade-enter-from {
+  opacity: 0.5;
+  transform: translateX(-120%);
+}
+
+// 淡入淡出动画
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
   opacity: 0;
-  transform: translateX(-100%);
 }

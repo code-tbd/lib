@@ -1,4 +1,6 @@
-// Storage
+const SESSION_ENCRYPT = false
+
+// storage
 type Type = 'session' | 'local'
 type NonEmptyArray<T> = [T, ...T[]]
 type Pair = [string, string]
@@ -24,19 +26,19 @@ class _Storage {
 
   private _decode(ciphertext: string) {
     return decodeURIComponent(atob(ciphertext))
-  }
+  } 
 
   private _innerTransform(data: string): string
   private _innerTransform(...data: NonEmptyArray<string>): NonEmptyArray<string>
-  private _innerTransform(data: string | NonEmptyArray<string>): string | NonEmptyArray<string> {
-    if (Array.isArray(data)) {
+  private _innerTransform(...data: NonEmptyArray<string>): string | NonEmptyArray<string> {
+    if (data.length > 1) {
       const arr: string[] = []
       data.forEach((str) => {
         arr.push(this._encrypt ? this._encode(str) : str)
       })
       return arr as NonEmptyArray<string>
     } else {
-      return this._encrypt ? this._encode(data) : data
+      return this._encrypt ? this._encode(data[0]) : data[0]
     }
   }
 
@@ -81,7 +83,7 @@ class _Storage {
   set length(value: any) {
     throw new Error(`
     don't set ${this._type}Storage length
-    禁止手动设置 ${this._type}Storage 长度`)
+    禁止手动设置${this._type}Storage长度`)
   }
 }
 
@@ -97,7 +99,7 @@ class SessionStorage extends _Storage {
   }
 }
 
-const ls = new LocalStorage()
-const ss = new SessionStorage()
+const ls = new LocalStorage(SESSION_ENCRYPT)
+const ss = new SessionStorage(SESSION_ENCRYPT)
 
 export { ls as localStorage, ss as sessionStorage }
