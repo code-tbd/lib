@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "crypto-js": "^4.1.1",
+    "vue": "^2.6.14"
+  },
+  "devDependencies": {
+    "@types/crypto-js": "^4.1.0"
+  }
+}

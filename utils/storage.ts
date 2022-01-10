@@ -1,18 +1,18 @@
-const SESSION_ENCRYPT = false
-
+import { AES, enc, mode, pad } from 'crypto-js'
 // storage
 type Type = 'session' | 'local'
 type NonEmptyArray<T> = [T, ...T[]]
 type Pair = [string, string]
 
-class _Storage {
-  private _encrypt
-  private _type
-  private _methods
+const RANDOM_KEY = 'z7ytWfGP&%sePwz!82s7ac&6%0KDWd0n'
+const RANDOM_IV = '5@NmNiAFAPzxRinW!paFE81@NQ4d0mf!'
 
-  constructor(type: Type, encrypt?: boolean) {
+class CryptoStorage {
+  private _type: Type
+  private _methods: Storage
+
+  constructor(type: Type) {
     this._type = type
-    this._encrypt = encrypt ?? true
     if (this._type === 'session') {
       this._methods = sessionStorage
     } else {
@@ -20,25 +20,35 @@ class _Storage {
     }
   }
 
-  private _encode(plaintext: string) {
-    return btoa(encodeURIComponent(plaintext))
+  private _encrypt(plaintext: string) {
+    return AES.encrypt(plaintext, RANDOM_KEY, {
+      iv: enc.Utf8.parse(RANDOM_IV),
+      mode: mode.CBC,
+      padding: pad.Pkcs7
+    }).toString()
   }
 
-  private _decode(ciphertext: string) {
-    return decodeURIComponent(atob(ciphertext))
-  } 
+  private _decrypt(ciphertext: string) {
+    return AES.decrypt(ciphertext, RANDOM_KEY, {
+      iv: enc.Utf8.parse(RANDOM_IV),
+      mode: mode.CBC,
+      padding: pad.Pkcs7
+    }).toString(enc.Utf8)
+  }
 
   private _innerTransform(data: string): string
   private _innerTransform(...data: NonEmptyArray<string>): NonEmptyArray<string>
-  private _innerTransform(...data: NonEmptyArray<string>): string | NonEmptyArray<string> {
+  private _innerTransform(
+    ...data: NonEmptyArray<string>
+  ): string | NonEmptyArray<string> {
     if (data.length > 1) {
       const arr: string[] = []
       data.forEach((str) => {
-        arr.push(this._encrypt ? this._encode(str) : str)
+        arr.push(this._encrypt(str))
       })
       return arr as NonEmptyArray<string>
     } else {
-      return this._encrypt ? this._encode(data[0]) : data[0]
+      return this._encrypt(data[0])
     }
   }
 
@@ -59,7 +69,7 @@ class _Storage {
   getItem(key: string) {
     const innerValue = this._innerValue(key)
     if (innerValue) {
-      return this._encrypt ? this._decode(innerValue) : innerValue
+      return this._decrypt(innerValue)
     } else {
       return null
     }
@@ -79,27 +89,20 @@ class _Storage {
   get length() {
     return this._methods.length
   }
+}
 
-  set length(value: any) {
-    throw new Error(`
-    don't set ${this._type}Storage length
-    禁止手动设置${this._type}Storage长度`)
+class CryptoLocalStorage extends CryptoStorage {
+  constructor() {
+    super('local')
+  }
+}
+class CryptoSessionStorage extends CryptoStorage {
+  constructor() {
+    super('session')
   }
 }
 
-class LocalStorage extends _Storage {
-  constructor(encrypt?: boolean) {
-    super('local', encrypt)
-  }
-}
+const cryptoLocalStorage = new CryptoLocalStorage()
+const cryptoSessionStorage = new CryptoSessionStorage()
 
-class SessionStorage extends _Storage {
-  constructor(encrypt?: boolean) {
-    super('session', encrypt)
-  }
-}
-
-const ls = new LocalStorage(SESSION_ENCRYPT)
-const ss = new SessionStorage(SESSION_ENCRYPT)
-
-export { ls as localStorage, ss as sessionStorage }
+export { cryptoLocalStorage, cryptoSessionStorage }
