@@ -1,5 +1,5 @@
 <template>
-  <div class="upload">
+  <div class="drag-upload">
     <el-upload drag action="" :show-file-list="false" :http-request="handleDrag">
       <div class="default-content" v-if="!url">
         <el-icon class="el-icon--upload">
@@ -66,7 +66,7 @@ const { imgDom, url, handleDrag } = useUpload()
 </script>
 
 <style lang="less" scoped>
-.upload {
+.drag-upload {
   position: relative;
 
   .default-content {
@@ -83,7 +83,7 @@ const { imgDom, url, handleDrag } = useUpload()
     img {
       width: 100%;
       height: 100%;
-      object-fit: contain;
+      object-fit: cover;
     }
     .cover {
       object-fit: cover;

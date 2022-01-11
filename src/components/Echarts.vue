@@ -4,12 +4,13 @@
 
 <script lang="ts" setup>
 import type { EChartsOption } from 'echarts'
+
 import { onMounted, ref, watch } from 'vue'
 import * as echarts from 'echarts'
 import { merge } from 'lodash'
 
 const props = defineProps<{
-  options: EChartsOption | EChartsOption[]
+  option: EChartsOption
 }>()
 
 const chartDom = ref<HTMLDivElement>()
@@ -20,13 +21,9 @@ onMounted(() => {
       renderer: 'svg'
     })
     watch(
-      () => props.options,
-      (options) => {
-        if (Array.isArray(options)) {
-          myChart.setOption(merge(baseOption(), ...options), true)
-        } else {
-          myChart.setOption(merge(baseOption(), options), true)
-        }
+      () => props.option,
+      (o) => {
+        myChart.setOption(merge(baseOption(), o), true)
       },
       {
         immediate: true,
