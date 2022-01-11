@@ -1,108 +1,84 @@
 import { AES, enc, mode, pad } from 'crypto-js'
-// storage
-type Type = 'session' | 'local'
-type NonEmptyArray<T> = [T, ...T[]]
-type Pair = [string, string]
+
+type StorageType = 'session' | 'local'
 
 const RANDOM_KEY = 'z7ytWfGP&%sePwz!82s7ac&6%0KDWd0n'
-const RANDOM_IV = '5@NmNiAFAPzxRinW!paFE81@NQ4d0mf!'
+const RANDOM_IV = '&2Kx*iSF_cRyk*CjdX&bCHQBG_D7E6b6'
+const ENCRYPT_MODE = true
 
 class CryptoStorage {
-  private _type: Type
-  private _methods: Storage
+  private type: StorageType
+  private storage: Storage
 
-  constructor(type: Type) {
-    this._type = type
-    if (this._type === 'session') {
-      this._methods = sessionStorage
+  constructor(type: StorageType) {
+    this.type = type
+    if (this.type === 'session') {
+      this.storage = sessionStorage
     } else {
-      this._methods = localStorage
+      this.storage = localStorage
     }
   }
 
-  private _encrypt(plaintext: string) {
-    return AES.encrypt(plaintext, RANDOM_KEY, {
+  private encryptValue(plainValue: string) {
+    return AES.encrypt(plainValue, RANDOM_KEY, {
       iv: enc.Utf8.parse(RANDOM_IV),
       mode: mode.CBC,
       padding: pad.Pkcs7
     }).toString()
   }
 
-  private _decrypt(ciphertext: string) {
-    return AES.decrypt(ciphertext, RANDOM_KEY, {
+  private decryptValue(cipherValue: string) {
+    return AES.decrypt(cipherValue, RANDOM_KEY, {
       iv: enc.Utf8.parse(RANDOM_IV),
       mode: mode.CBC,
       padding: pad.Pkcs7
     }).toString(enc.Utf8)
   }
 
-  private _innerTransform(data: string): string
-  private _innerTransform(...data: NonEmptyArray<string>): NonEmptyArray<string>
-  private _innerTransform(
-    ...data: NonEmptyArray<string>
-  ): string | NonEmptyArray<string> {
-    if (data.length > 1) {
-      const arr: string[] = []
-      data.forEach((str) => {
-        arr.push(this._encrypt(str))
-      })
-      return arr as NonEmptyArray<string>
-    } else {
-      return this._encrypt(data[0])
-    }
-  }
-
-  private _innerPair(key: string, value: string) {
-    return this._innerTransform(key, value)
-  }
-
-  private _innerValue(key: string) {
-    const innerKey = this._innerTransform(key)
-    return this._methods.getItem(innerKey)
+  private encryptKey(plainKey: string) {
+    return btoa(encodeURIComponent(plainKey))
   }
 
   setItem(key: string, value: string) {
-    const innerPair = this._innerPair(key, value) as Pair
-    this._methods.setItem(...innerPair)
+    ENCRYPT_MODE && this.storage.setItem(this.encryptKey(key), this.encryptValue(value))
+    !ENCRYPT_MODE && this.storage.setItem(key, value)
   }
 
   getItem(key: string) {
-    const innerValue = this._innerValue(key)
-    if (innerValue) {
-      return this._decrypt(innerValue)
+    if (ENCRYPT_MODE) {
+      const encryptValue = this.storage.getItem(this.encryptKey(key))
+      return encryptValue ? this.decryptValue(encryptValue) : null
     } else {
-      return null
+      return this.storage.getItem(key)
     }
   }
 
   removeItem(key: string) {
-    const innerValue = this._innerValue(key)
-    if (innerValue) {
-      this._methods.removeItem(innerValue)
-    }
+    ENCRYPT_MODE && this.storage.removeItem(this.encryptKey(key))
+    !ENCRYPT_MODE && this.storage.removeItem(key)
   }
 
   removeAll() {
-    this._methods.clear()
+    this.storage.clear()
   }
 
   get length() {
-    return this._methods.length
+    return this.storage.length
   }
 }
 
-class CryptoLocalStorage extends CryptoStorage {
-  constructor() {
-    super('local')
-  }
-}
-class CryptoSessionStorage extends CryptoStorage {
-  constructor() {
-    super('session')
-  }
-}
+// class CryptoLocalStorage extends CryptoStorage {
+//   constructor() {
+//     super('local')
+//   }
+// }
+// class CryptoSessionStorage extends CryptoStorage {
+//   constructor() {
+//     super('session')
+//   }
+// }
 
-const cryptoLocalStorage = new CryptoLocalStorage()
-const cryptoSessionStorage = new CryptoSessionStorage()
+const cryptoLocalStorage = new CryptoStorage('local')
+const cryptoSessionStorage = new CryptoStorage('session')
 
 export { cryptoLocalStorage, cryptoSessionStorage }
