@@ -1,10 +1,21 @@
-import type { Ref } from 'vue'
 import { ref } from 'vue'
 import dayjs from 'dayjs'
-export const useTime = (): Ref<string> => {
-  const time = ref(dayjs().format('YYYY-MM-DD') + '  ' + dayjs().format('HH:mm'))
+
+const useTime = () => {
+  const currentTime = ref('')
+  const template = ref('YYYY-MM-DD hh:mm:ss')
+
+  const getCurrentTime = () => dayjs().format(template.value)
+
+  const formatTime = (newTemplate: string) => {
+    template.value = newTemplate
+  }
+
   setInterval(() => {
-    time.value = dayjs().format('YYYY-MM-DD') + '  ' + dayjs().format('HH:mm')
+    currentTime.value = getCurrentTime()
   }, 1000)
-  return time
+
+  return { currentTime, formatTime }
 }
+
+export default useTime

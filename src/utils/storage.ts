@@ -1,11 +1,35 @@
+/* eslint-disable @typescript-eslint/no-empty-interface */
 import { AES, enc, mode, pad } from 'crypto-js'
 
 type StorageType = 'session' | 'local'
+type StringifyAllowed =
+  | null
+  | boolean
+  | string
+  | number
+  | StringifyAllowedRecord
+  | StringifyAllowedArray
+interface StringifyAllowedRecord extends Record<string, StringifyAllowed> {}
+interface StringifyAllowedArray extends Array<StringifyAllowed> {}
+interface ItemData {
+  value: StringifyAllowed
+  expires?: number
+  createTime?: number
+}
 
-const RANDOM_KEY = 'z7ytWfGP&%sePwz!82s7ac&6%0KDWd0n'
-const RANDOM_IV = '&2Kx*iSF_cRyk*CjdX&bCHQBG_D7E6b6'
+const RANDOM_KEY = Math.random().toString()
+const RANDOM_IV = Math.random().toString()
 const ENCRYPT_MODE = true
+const encryptConfig = {
+  iv: enc.Utf8.parse(RANDOM_IV),
+  mode: mode.CBC,
+  padding: pad.Pkcs7
+}
 
+/**
+ * @description feat:加密/可存储通过JSON.parse的复杂结构/可设置过期时间
+ * @class CryptoStorage
+ */
 class CryptoStorage {
   private type: StorageType
   private storage: Storage
@@ -20,42 +44,56 @@ class CryptoStorage {
   }
 
   private encryptValue(plainValue: string) {
-    return AES.encrypt(plainValue, RANDOM_KEY, {
-      iv: enc.Utf8.parse(RANDOM_IV),
-      mode: mode.CBC,
-      padding: pad.Pkcs7
-    }).toString()
+    return AES.encrypt(plainValue, RANDOM_KEY, encryptConfig).toString()
   }
 
   private decryptValue(cipherValue: string) {
-    return AES.decrypt(cipherValue, RANDOM_KEY, {
-      iv: enc.Utf8.parse(RANDOM_IV),
-      mode: mode.CBC,
-      padding: pad.Pkcs7
-    }).toString(enc.Utf8)
+    return AES.decrypt(cipherValue, RANDOM_KEY, encryptConfig).toString(enc.Utf8)
   }
 
   private encryptKey(plainKey: string) {
     return btoa(encodeURIComponent(plainKey))
   }
 
-  setItem(key: string, value: string) {
-    ENCRYPT_MODE && this.storage.setItem(this.encryptKey(key), this.encryptValue(value))
-    !ENCRYPT_MODE && this.storage.setItem(key, value)
+  /**
+   * @param {string} key
+   * @param {StringifyAllowed} value
+   * @param {number} [expires] 单位：天
+   * @memberof CryptoStorage
+   */
+  setItem(key: string, value: StringifyAllowed, expires?: number) {
+    const itemData: ItemData = { value }
+    if (expires) {
+      Object.assign(itemData, { expires, createTime: Date.now() })
+    }
+    this.storage.setItem(
+      ENCRYPT_MODE ? this.encryptKey(key) : key,
+      ENCRYPT_MODE ? this.encryptValue(JSON.stringify(itemData)) : JSON.stringify(itemData)
+    )
   }
 
   getItem(key: string) {
-    if (ENCRYPT_MODE) {
-      const encryptValue = this.storage.getItem(this.encryptKey(key))
-      return encryptValue ? this.decryptValue(encryptValue) : null
+    const innerValue = this.storage.getItem(ENCRYPT_MODE ? this.encryptKey(key) : key)
+    if (innerValue) {
+      const itemData: ItemData = JSON.parse(
+        ENCRYPT_MODE ? this.decryptValue(innerValue) : innerValue
+      )
+      if (itemData.expires && itemData.createTime) {
+        const now = Date.now()
+        const isTimeout = now - itemData.createTime > itemData.expires * 24 * 60 * 60 * 1000
+        if (isTimeout) {
+          this.removeItem(key)
+          return null
+        }
+      }
+      return itemData.value
     } else {
-      return this.storage.getItem(key)
+      return null
     }
   }
 
   removeItem(key: string) {
-    ENCRYPT_MODE && this.storage.removeItem(this.encryptKey(key))
-    !ENCRYPT_MODE && this.storage.removeItem(key)
+    this.storage.removeItem(ENCRYPT_MODE ? this.encryptKey(key) : key)
   }
 
   removeAll() {
@@ -67,18 +105,7 @@ class CryptoStorage {
   }
 }
 
-// class CryptoLocalStorage extends CryptoStorage {
-//   constructor() {
-//     super('local')
-//   }
-// }
-// class CryptoSessionStorage extends CryptoStorage {
-//   constructor() {
-//     super('session')
-//   }
-// }
-
 const cryptoLocalStorage = new CryptoStorage('local')
 const cryptoSessionStorage = new CryptoStorage('session')
 
-export { cryptoLocalStorage, cryptoSessionStorage }
+export { cryptoLocalStorage, cryptoSessionStorage, CryptoStorage }
